@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.codex/greenfield-software-factory/feature-plan.schema.json",
+  "title": "Greenfield Software Factory Feature Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "features"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "features": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "status",
+          "depends_on",
+          "requirements",
+          "acceptance_criteria",
+          "files",
+          "tests",
+          "risk",
+          "evidence",
+          "source_fingerprint"
+        ],
+        "properties": {
+          "id": {"type": "string", "pattern": "^SLICE-[0-9]{3,}$"},
+          "title": {"type": "string", "minLength": 1},
+          "status": {
+            "enum": ["pending", "ready", "implementing", "verifying", "reviewing", "repairing", "accepted", "blocked"]
+          },
+          "depends_on": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^SLICE-[0-9]{3,}$"}
+          },
+          "requirements": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^(FR|NFR)-[0-9]{3,}$"}
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^AC-[0-9]{3,}$"}
+          },
+          "files": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "\\S"}
+          },
+          "tests": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "\\S"}
+          },
+          "risk": {"enum": ["low", "medium", "high"]},
+          "evidence": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "source_fingerprint": {
+            "oneOf": [
+              {"type": "null"},
+              {"$ref": "#/$defs/fingerprint"}
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"status": {"const": "accepted"}},
+              "required": ["status"]
+            },
+            "then": {
+              "properties": {
+                "evidence": {"minItems": 1},
+                "source_fingerprint": {"$ref": "#/$defs/fingerprint"}
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

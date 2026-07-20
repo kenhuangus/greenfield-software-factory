@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "batch_id": "BATCH-001",
+  "task_id": "TASK-001",
+  "lane": "other",
+  "worker_role": "replace-with-assigned-worker-role",
+  "status": "error",
+  "input_fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "observed_fingerprint": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "started_at": "1970-01-01T00:00:00Z",
+  "finished_at": "1970-01-01T00:00:00Z",
+  "summary": "CRASH FALLBACK: task result is not finalized; replace all template values, refresh after durable milestones, and finalize before the reporting reserve expires.",
+  "tool_versions": {},
+  "commands": [],
+  "coverage": [],
+  "artifacts": [],
+  "findings": [],
+  "changed_files": []
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Greenfield Software Factory"
+  short_description: "Build greenfield software via batched worker gates"
+  default_prompt: "Use $greenfield-software-factory to build this new product from scratch in the designated workspace with a coordinator-only, batched worker pipeline and evidence-backed gates."

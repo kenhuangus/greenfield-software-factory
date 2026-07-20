@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.codex/greenfield-software-factory/worker-result.schema.json",
+  "title": "Greenfield Software Factory Worker Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "batch_id",
+    "task_id",
+    "lane",
+    "worker_role",
+    "status",
+    "input_fingerprint",
+    "observed_fingerprint",
+    "started_at",
+    "finished_at",
+    "summary",
+    "artifacts",
+    "changed_files"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "batch_id": {"type": "string", "pattern": "^BATCH-[0-9]{3,}$"},
+    "task_id": {"type": "string", "pattern": "^TASK-[0-9]{3,}$"},
+    "lane": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "worker_role": {"type": "string", "minLength": 1},
+    "status": {"enum": ["passed", "failed", "blocked", "error", "stale"]},
+    "input_fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "observed_fingerprint": {"$ref": "#/$defs/fingerprint"},
+    "started_at": {"type": "string", "format": "date-time"},
+    "finished_at": {"type": "string", "format": "date-time"},
+    "summary": {"type": "string", "minLength": 1},
+    "tool_versions": {
+      "type": "object",
+      "default": {},
+      "propertyNames": {"minLength": 1},
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "commands": {
+      "type": "array",
+      "default": [],
+      "items": {"$ref": "#/$defs/command"}
+    },
+    "coverage": {
+      "type": "array",
+      "default": [],
+      "items": {"$ref": "#/$defs/coverage"}
+    },
+    "artifacts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "findings": {
+      "type": "array",
+      "default": [],
+      "items": {"$ref": "#/$defs/finding"}
+    },
+    "changed_files": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lane": {
+            "enum": [
+              "acceptance-review",
+              "architecture-review",
+              "code-review",
+              "security-review",
+              "test-review",
+              "ui-testing",
+              "adjudication"
+            ]
+          }
+        },
+        "required": ["lane"]
+      },
+      "then": {
+        "properties": {"changed_files": {"maxItems": 0}}
+      }
+    }
+  ],
+  "$defs": {
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "cwd", "exit_code", "outcome", "evidence"],
+      "properties": {
+        "command": {"type": "string", "minLength": 1},
+        "cwd": {"type": "string", "minLength": 1},
+        "exit_code": {"type": ["integer", "null"]},
+        "outcome": {"enum": ["passed", "failed", "not-run"]},
+        "evidence": {"type": ["string", "null"]}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "status", "evidence", "notes"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "kind": {
+          "enum": [
+            "requirement",
+            "acceptance",
+            "risk",
+            "route",
+            "action",
+            "role",
+            "state",
+            "viewport",
+            "browser-platform",
+            "accessibility",
+            "other"
+          ]
+        },
+        "status": {"enum": ["passed", "failed", "not-applicable", "not-run"]},
+        "evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "notes": {"type": "string"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity",
+        "title",
+        "status",
+        "acceptance_ids",
+        "location",
+        "details",
+        "evidence"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^FIND-[0-9]{3,}$"},
+        "severity": {"enum": ["critical", "high", "medium", "low", "info"]},
+        "title": {"type": "string", "minLength": 1},
+        "status": {"enum": ["open", "fixed", "accepted-risk", "false-positive"]},
+        "acceptance_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^AC-[0-9]{3,}$"}
+        },
+        "location": {"type": ["string", "null"]},
+        "details": {"type": "string", "minLength": 1},
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

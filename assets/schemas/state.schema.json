@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.codex/greenfield-software-factory/state.schema.json",
+  "title": "Greenfield Software Factory State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "goal",
+    "profile",
+    "authority_envelope",
+    "status",
+    "current_phase",
+    "created_at",
+    "updated_at",
+    "artifacts",
+    "gates",
+    "assumptions",
+    "blockers",
+    "history"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "goal": {"type": "string", "minLength": 1},
+    "profile": {
+      "enum": ["web-app", "api-service", "cli-library", "mobile-desktop", "data-ml", "other"]
+    },
+    "authority_envelope": {"type": "string", "minLength": 1},
+    "status": {"enum": ["active", "blocked", "complete"]},
+    "current_phase": {
+      "enum": ["requirements", "architecture", "planning", "initialization", "implementation", "validation", "handoff", "complete"]
+    },
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requirements", "architecture", "planning", "initialization", "implementation", "validation", "handoff"],
+      "properties": {
+        "requirements": {"$ref": "#/$defs/gate"},
+        "architecture": {"$ref": "#/$defs/gate"},
+        "planning": {"$ref": "#/$defs/gate"},
+        "initialization": {"$ref": "#/$defs/gate"},
+        "implementation": {"$ref": "#/$defs/sourceGate"},
+        "validation": {"$ref": "#/$defs/sourceGate"},
+        "handoff": {"$ref": "#/$defs/sourceGate"}
+      }
+    },
+    "assumptions": {"type": "array", "items": {"$ref": "#/$defs/assumption"}},
+    "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
+    "history": {"type": "array", "items": {"$ref": "#/$defs/history"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "complete"}}, "required": ["status"]},
+      "then": {"properties": {"current_phase": {"const": "complete"}}}
+    },
+    {
+      "if": {"properties": {"current_phase": {"const": "complete"}}, "required": ["current_phase"]},
+      "then": {"properties": {"status": {"const": "complete"}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "blocked"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "blockers": {
+            "contains": {
+              "type": "object",
+              "properties": {"resolved": {"const": false}},
+              "required": ["resolved"]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "blockers": {"contains": {"$ref": "#/$defs/unresolvedBlocker"}}
+        },
+        "required": ["blockers"]
+      },
+      "then": {"properties": {"status": {"const": "blocked"}}}
+    }
+  ],
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "source_fingerprint", "updated_at"],
+      "properties": {
+        "status": {"enum": ["pending", "passed", "failed"]},
+        "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "source_fingerprint": {"type": "null"},
+        "updated_at": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "format": "date-time"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["passed", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {"properties": {"evidence": {"minItems": 1}}},
+          "else": {
+            "properties": {
+              "evidence": {"maxItems": 0},
+              "source_fingerprint": {"const": null},
+              "updated_at": {"const": null}
+            }
+          }
+        }
+      ]
+    },
+    "sourceGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence", "source_fingerprint", "updated_at"],
+      "properties": {
+        "status": {"enum": ["pending", "passed", "failed"]},
+        "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "source_fingerprint": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/fingerprint"}
+          ]
+        },
+        "updated_at": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "format": "date-time"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["passed", "failed"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "evidence": {"minItems": 1},
+              "source_fingerprint": {"$ref": "#/$defs/fingerprint"}
+            }
+          },
+          "else": {
+            "properties": {
+              "evidence": {"maxItems": 0},
+              "source_fingerprint": {"const": null},
+              "updated_at": {"const": null}
+            }
+          }
+        }
+      ]
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "at"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^ASM-[0-9]{3,}$"},
+        "text": {"type": "string", "minLength": 1},
+        "at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "reason", "phase", "at", "resolved", "resolved_at", "resolution"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^BLK-[0-9]{3,}$"},
+        "reason": {"type": "string", "minLength": 1},
+        "phase": {
+          "enum": ["requirements", "architecture", "planning", "initialization", "implementation", "validation", "handoff"]
+        },
+        "at": {"type": "string", "format": "date-time"},
+        "resolved": {"type": "boolean"},
+        "resolved_at": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "format": "date-time"}
+          ]
+        },
+        "resolution": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"resolved": {"const": true}},
+            "required": ["resolved"]
+          },
+          "then": {
+            "properties": {
+              "resolved_at": {"type": "string", "format": "date-time"},
+              "resolution": {"type": "string", "pattern": "\\S"}
+            }
+          },
+          "else": {
+            "properties": {
+              "resolved_at": {"const": null},
+              "resolution": {"const": null}
+            }
+          }
+        }
+      ]
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "event", "details"],
+      "properties": {
+        "at": {"type": "string", "format": "date-time"},
+        "event": {"type": "string", "minLength": 1},
+        "details": {"type": "string", "pattern": "\\S"}
+      }
+    },
+    "unresolvedBlocker": {
+      "type": "object",
+      "properties": {"resolved": {"const": false}},
+      "required": ["resolved"]
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}
